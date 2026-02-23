@@ -8,11 +8,6 @@ import { GroupInfo } from '../types';
  */
 export class TabGroupManager {
   /**
-   * ドメインごとのグループIDキャッシュ
-   */
-  private domainGroupCache: Map<string, number> = new Map();
-
-  /**
    * すべてのタブをドメインごとにグループ化
    * @param windowId - ウィンドウID（省略時は全ウィンドウ）
    */
@@ -112,26 +107,11 @@ export class TabGroupManager {
    * @returns グループID（グループが不要な場合はnull）
    */
   private async getOrCreateGroup(domain: string, windowId: number): Promise<number | null> {
-    // キャッシュを確認
-    const cacheKey = `${windowId}-${domain}`;
-    if (this.domainGroupCache.has(cacheKey)) {
-      const cachedGroupId = this.domainGroupCache.get(cacheKey)!;
-      // グループがまだ存在するか確認
-      try {
-        await chrome.tabGroups.get(cachedGroupId);
-        return cachedGroupId;
-      } catch {
-        // グループが削除されている場合はキャッシュをクリア
-        this.domainGroupCache.delete(cacheKey);
-      }
-    }
-
-    // 既存のグループを検索
+    // 既存のグループを検索（キャッシュではなく実際のグループから検索）
     const groups = await chrome.tabGroups.query({ windowId });
     const existingGroup = groups.find((g) => g.title === domain);
 
     if (existingGroup) {
-      this.domainGroupCache.set(cacheKey, existingGroup.id);
       return existingGroup.id;
     }
 
@@ -146,21 +126,26 @@ export class TabGroupManager {
       return null;
     }
 
-    // 新規グループを作成
-    const tabIds = sameDomainTabs.filter((t) => t.id).map((t) => t.id!);
-    const groupId = await chrome.tabs.group({ tabIds });
-
-    // グループのタイトルと色を設定
+    // 既存グループの情報を取得（グループ作成前に取得）
     const existingGroups = await this.getExistingGroups(windowId);
     const color = ColorManager.assignColor(domain, existingGroups);
 
+    // 新規グループを作成
+    const tabIds = sameDomainTabs.filter((t) => t.id).map((t) => t.id!);
+    const groupId = await chrome.tabs.group({
+      tabIds,
+      createProperties: {
+        windowId,
+      },
+    });
+
+    // グループのタイトルと色を即座に設定
     await chrome.tabGroups.update(groupId, {
       title: domain,
       color: color,
       collapsed: false,
     });
 
-    this.domainGroupCache.set(cacheKey, groupId);
     return groupId;
   }
 
@@ -175,24 +160,25 @@ export class TabGroupManager {
       return;
     }
 
-    // グループを作成
-    const groupId = await chrome.tabs.group({ tabIds });
-
-    // 既存グループの情報を取得
+    // 既存グループの情報を取得（グループ作成前に取得）
     const windowId = tabs[0].windowId;
     const existingGroups = await this.getExistingGroups(windowId);
-
-    // グループのタイトルと色を設定
     const color = ColorManager.assignColor(domain, existingGroups);
+
+    // グループを作成し、即座にタイトルと色を設定
+    const groupId = await chrome.tabs.group({
+      tabIds,
+      createProperties: {
+        windowId,
+      },
+    });
+
+    // グループのタイトルと色を即座に設定
     await chrome.tabGroups.update(groupId, {
       title: domain,
       color: color,
       collapsed: false,
     });
-
-    // キャッシュに保存
-    const cacheKey = `${windowId}-${domain}`;
-    this.domainGroupCache.set(cacheKey, groupId);
   }
 
   /**
