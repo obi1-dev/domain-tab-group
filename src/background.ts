@@ -1,88 +1,56 @@
-// Background service worker for Domain Tab Group extension
+/**
+ * Domain Tab Group Chrome Extension
+ * Service Worker (Background Script)
+ *
+ * タブをドメインごとに自動グループ化するバックグラウンドスクリプト
+ */
+
+import { TabGroupManager } from './managers/TabGroupManager';
+
+// タブグループマネージャーのインスタンス
+const tabGroupManager = new TabGroupManager();
 
 /**
- * Extract domain from a URL
+ * 拡張機能インストール/更新時の処理
  */
-function getDomain(url: string): string {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname;
-  } catch (e) {
-    return 'unknown';
+chrome.runtime.onInstalled.addListener(async (details) => {
+  console.log('Domain Tab Group extension installed/updated');
+
+  if (details.reason === 'install' || details.reason === 'update') {
+    // 全タブをグループ化
+    await tabGroupManager.groupTabsByDomain();
   }
-}
-
-/**
- * Generate a color for a domain (simple hash-based color generation)
- */
-function getDomainColor(domain: string): chrome.tabGroups.ColorEnum {
-  const colors: chrome.tabGroups.ColorEnum[] = [
-    'grey',
-    'blue',
-    'red',
-    'yellow',
-    'green',
-    'pink',
-    'purple',
-    'cyan',
-    'orange',
-  ];
-  let hash = 0;
-  for (let i = 0; i < domain.length; i++) {
-    hash = domain.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
-}
-
-/**
- * Group tabs by domain in the current window
- */
-async function groupTabsByDomain(): Promise<void> {
-  const tabs = await chrome.tabs.query({ currentWindow: true });
-  const domainMap = new Map<string, number[]>();
-
-  // Group tab IDs by domain
-  for (const tab of tabs) {
-    if (!tab.id || !tab.url) continue;
-
-    // Skip chrome:// and extension URLs
-    if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
-      continue;
-    }
-
-    const domain = getDomain(tab.url);
-    if (!domainMap.has(domain)) {
-      domainMap.set(domain, []);
-    }
-    domainMap.get(domain)!.push(tab.id);
-  }
-
-  // Create groups for each domain with multiple tabs
-  for (const [domain, tabIds] of domainMap.entries()) {
-    if (tabIds.length < 2) continue; // Skip domains with only one tab
-
-    try {
-      const groupId = await chrome.tabs.group({ tabIds });
-      await chrome.tabGroups.update(groupId, {
-        title: domain,
-        color: getDomainColor(domain),
-        collapsed: false,
-      });
-    } catch (error) {
-      console.error(`Failed to group tabs for domain ${domain}:`, error);
-    }
-  }
-}
-
-// Listen for extension installation
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('Domain Tab Group extension installed');
 });
 
-// Listen for messages from popup
+/**
+ * ブラウザ起動時の処理
+ */
+chrome.runtime.onStartup.addListener(async () => {
+  console.log('Browser started, grouping tabs');
+  await tabGroupManager.groupTabsByDomain();
+});
+
+/**
+ * 新規タブ作成時の処理
+ */
+chrome.tabs.onCreated.addListener(async (tab) => {
+  await tabGroupManager.handleTabCreated(tab);
+});
+
+/**
+ * タブ更新時の処理（URL変更を監視）
+ */
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  await tabGroupManager.handleTabUpdated(tabId, changeInfo, tab);
+});
+
+/**
+ * ポップアップからのメッセージを処理
+ */
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === 'groupTabs') {
-    groupTabsByDomain()
+    tabGroupManager
+      .groupTabsByDomain()
       .then(() => {
         sendResponse({ success: true });
       })
@@ -90,9 +58,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         console.error('Error grouping tabs:', error);
         sendResponse({ success: false, error: error.message });
       });
-    return true; // Will respond asynchronously
+    return true; // 非同期レスポンスを返すため
   }
 });
-
-// Export for testing purposes
-export { getDomain, getDomainColor, groupTabsByDomain };

@@ -1,4 +1,7 @@
-// Popup script for Domain Tab Group extension
+/**
+ * Popup script for Domain Tab Group extension
+ * ポップアップUIのスクリプト
+ */
 
 document.addEventListener('DOMContentLoaded', () => {
   const groupButton = document.getElementById('groupButton') as HTMLButtonElement;
@@ -7,20 +10,20 @@ document.addEventListener('DOMContentLoaded', () => {
   if (groupButton) {
     groupButton.addEventListener('click', async () => {
       groupButton.disabled = true;
-      statusDiv.textContent = 'Grouping tabs...';
+      statusDiv.textContent = 'グループ化中...';
 
       try {
         const response = await chrome.runtime.sendMessage({ action: 'groupTabs' });
 
         if (response.success) {
-          statusDiv.textContent = 'Tabs grouped successfully!';
+          statusDiv.textContent = 'タブをグループ化しました！';
           statusDiv.className = 'status success';
         } else {
-          statusDiv.textContent = `Error: ${response.error}`;
+          statusDiv.textContent = `エラー: ${response.error}`;
           statusDiv.className = 'status error';
         }
       } catch (error) {
-        statusDiv.textContent = `Error: ${error}`;
+        statusDiv.textContent = `エラー: ${error}`;
         statusDiv.className = 'status error';
       } finally {
         groupButton.disabled = false;
