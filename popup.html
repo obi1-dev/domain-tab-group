@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Domain Tab Group</title>
+    <style>
+      body {
+        width: 300px;
+        padding: 16px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 18px;
+        margin: 0 0 16px 0;
+        color: #202124;
+      }
+
+      p {
+        font-size: 14px;
+        color: #5f6368;
+        margin: 0 0 16px 0;
+        line-height: 1.5;
+      }
+
+      button {
+        width: 100%;
+        padding: 10px;
+        font-size: 14px;
+        font-weight: 500;
+        color: white;
+        background-color: #1a73e8;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      button:hover:not(:disabled) {
+        background-color: #1765cc;
+      }
+
+      button:disabled {
+        background-color: #dadce0;
+        cursor: not-allowed;
+      }
+
+      .status {
+        margin-top: 12px;
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 13px;
+        text-align: center;
+      }
+
+      .status.success {
+        background-color: #e6f4ea;
+        color: #137333;
+      }
+
+      .status.error {
+        background-color: #fce8e6;
+        color: #c5221f;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Domain Tab Group</h1>
+    <p>Organize your tabs into groups based on their domain.</p>
+    <button id="groupButton">Group Tabs by Domain</button>
+    <div id="status" class="status"></div>
+    <script src="popup.js"></script>
+  </body>
+</html>
