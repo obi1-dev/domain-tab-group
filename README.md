@@ -171,7 +171,9 @@ domain-tab-group/
 ├── dist/                          # ビルド出力（自動生成）
 ├── manifest.json                  # Chrome拡張機能マニフェスト
 ├── popup.html                     # ポップアップUI
-├── webpack.config.js              # ビルド設定
+├── vite.config.ts                 # Viteビルド設定
+├── build.sh                       # ビルドスクリプト
+├── eslint.config.js               # ESLintフラット設定
 ├── tsconfig.json                  # TypeScript設定
 └── package.json                   # プロジェクト設定
 ```
@@ -180,8 +182,8 @@ domain-tab-group/
 
 - **TypeScript**: 型安全性を確保
 - **Chrome Extension Manifest V3**: 最新の拡張機能API
-- **Webpack**: バンドリング
-- **ESLint**: コード品質チェック
+- **Vite**: 高速ビルドツール（v6）
+- **ESLint**: コード品質チェック（v9、フラット設定）
 - **Prettier**: コードフォーマット
 
 ## アーキテクチャ
